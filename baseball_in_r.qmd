@@ -1,0 +1,206 @@
+---
+title: "baseball_in_r"
+author: "Keith Karani"
+format: html
+editor: visual
+---
+
+## Introduction
+
+The Lahman package contains a database of pitching, hitting and fielding statistics from Major League Baseball from 1871 to 2022 including data from the present leagues American and National, and the four other major leagues, (American Association, Union Association, Player League, Federal League) and the National Association of 1871 to 1875.
+
+### Data Dictionary
+
+The data is comprised of the following main tables:
+
+1.  People - player names, date of birth, death and other biological information.
+
+2.  Batting - batting statistics
+
+3.  Pitching - pitching statistics
+
+4.  Fielding - fielding statistics
+
+    A collection of other tables is also provided:
+
+    Teams:
+
+    |                                                                                      |                             |
+    |-------------------------------------------------------------------------------------:|:----------------------------|
+    |                     [`Teams`](http://127.0.0.1:30963/help/library/Lahman/help/Teams) | yearly stats and standings  |
+    |             [`TeamsHalf`](http://127.0.0.1:30963/help/library/Lahman/help/TeamsHalf) | split season data for teams |
+    | [`TeamsFranchises`](http://127.0.0.1:30963/help/library/Lahman/help/TeamsFranchises) | franchise information       |
+    |                                                                                      |                             |
+
+    Post-season play:
+
+    |                                                                                |                                 |
+    |-------------------------------------------------------------------------------:|:--------------------------------|
+    |   [`BattingPost`](http://127.0.0.1:30963/help/library/Lahman/help/BattingPost) | post-season batting statistics  |
+    | [`PitchingPost`](http://127.0.0.1:30963/help/library/Lahman/help/PitchingPost) | post-season pitching statistics |
+    | [`FieldingPost`](http://127.0.0.1:30963/help/library/Lahman/help/FieldingPost) | post-season fielding data       |
+    |     [`SeriesPost`](http://127.0.0.1:30963/help/library/Lahman/help/SeriesPost) | post-season series information  |
+    |                                                                                |                                 |
+
+    Awards:
+
+    |                                                                                              |                                 |
+    |---------------------------------------------------------------------------------------------:|:--------------------------------|
+    |           [`AwardsManagers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsManagers) | awards won by managers          |
+    |             [`AwardsPlayers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsPlayers) | awards won by players           |
+    | [`AwardsShareManagers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsShareManagers) | award voting for manager awards |
+    |   [`AwardsSharePlayers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsSharePlayers) | award voting for player awards  |
+    |                                                                                              |                                 |
+
+    Hall of Fame: links to People via `hofID`
+
+    |                                                                            |                          |
+    |---------------------------------------------------------------------------:|:-------------------------|
+    | [`HallOfFame`](http://127.0.0.1:30963/help/library/Lahman/help/HallOfFame) | Hall of Fame voting data |
+    |                                                                            |                          |
+
+Information is different tables relating to a player is tagged with his playerID and are linked to names and birthdates in the People table.
+
+Other tables:
+
+[`AllstarFull`](http://127.0.0.1:30963/help/library/Lahman/help/AllstarFull) - All-Star games appearances; [`Managers`](http://127.0.0.1:30963/help/library/Lahman/help/Managers) - managerial statistics; [`FieldingOF`](http://127.0.0.1:30963/help/library/Lahman/help/FieldingOF) - outfield position data; [`ManagersHalf`](http://127.0.0.1:30963/help/library/Lahman/help/ManagersHalf) - split season data for managers; [`Salaries`](http://127.0.0.1:30963/help/library/Lahman/help/Salaries) - player salary data; [`Appearances`](http://127.0.0.1:30963/help/library/Lahman/help/Appearances) - data on player appearances; [`Schools`](http://127.0.0.1:30963/help/library/Lahman/help/Schools) - Information on schools players attended; [`CollegePlaying`](http://127.0.0.1:30963/help/library/Lahman/help/CollegePlaying) - Information on schools players attended, by player and year;
+
+Variable label tables are provided for some of the tables:
+
+[`battingLabels`](http://127.0.0.1:30963/help/library/Lahman/help/battingLabels), [`pitchingLabels`](http://127.0.0.1:30963/help/library/Lahman/help/pitchingLabels), [`fieldingLabels`](http://127.0.0.1:30963/help/library/Lahman/help/fieldingLabels)
+
+::: {.callout-note appearance="simple"}
+### Source
+
+Lahman, S. (2023) Lahman's Baseball Database, 1871-2022, Main page, <https://www.seanlahman.com/baseball-archive/statistics/>
+:::
+
+#### Load packages to use
+
+```{r}
+library(Lahman)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(caret)
+```
+
+View the Lahman package to display the dataset with the data dictionary on the baseball data
+
+```{r}
+
+Teams
+
+View(Teams)
+
+teams <- Teams
+
+head(teams)
+```
+
+lets conduct exploratory data analysis
+
+Winning a game in baseball is counted using run, so for our first exploration can we find the average number of runs made in every season in Major league baseball
+
+```{r}
+
+teams_runs <- teams |> 
+  mutate(runs_game = R/(W + L))
+
+
+head(teams_runs)
+
+```
+
+we can narrow down our analysis to find the average number of runs per games for every team for a given year for all teams
+
+```{r}
+
+runs_per_yr <- teams_runs |> 
+  group_by(yearID) |> 
+  summarize(mean_runs = mean(runs_game, na.rm = TRUE))
+
+head(runs_per_yr)
+
+
+# lets graph this summary and observe it over time
+
+ggplot(runs_per_yr, aes(x = yearID,  y = mean_runs)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Average MLB Runs by Year",
+    caption = "Source: https://www.seanlahman.com/baseball-archive/statistics/"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+Ofcos every baseball fan wants his/her team to win. Lets go ahead and create a model to predict wins by team
+
+```{r}
+
+base_df <- teams |> 
+  drop_na() |> 
+  select(name, yearID, W, L, R, H, X2B, X3B, HR, SO, RA) |> 
+  filter(yearID >= 2009)
+
+head(base_df)
+
+
+
+```
+
+lets train a linear model based on the variables we filtered above and find out how statistically significant they are.
+
+```{r}
+
+lm1 <- lm(W ~ R + H + X2B + X3B + HR + SO + RA, data = base_df)
+
+summary(lm1)
+
+#observation
+# we can observe that tripples(X3B), double(x2b) and strike outs(SO) are not statically significant 
+```
+
+we can create another model with only the statistically significant variable and compare
+
+```{r}
+
+
+lm2 <- lm(W ~ R + H + RA, data = base_df)
+
+summary(lm2)
+
+```
+
+using our second model we can try predicting team wins
+
+```{r}
+
+preds <- predict(lm2, base_df)
+
+#present the predicted value in a column to compare with the actual win value
+
+base_df$pred <- preds 
+
+base_df
+
+
+# plot the results
+
+base_df |> 
+  ggplot(aes(x = pred, y = W)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    title = "Predicted wins against actual wins",
+    x = "Predicted Wins",
+    y = "Actual Wins"
+  ) +
+  theme_minimal()
+
+```
