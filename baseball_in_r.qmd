@@ -26,7 +26,7 @@ The data is comprised of the following main tables:
     Teams:
 
     |                                                                                      |                             |
-    |-------------------------------------------------------------------------------------:|:----------------------------|
+    |----------------------------------------------------:|:------------------|
     |                     [`Teams`](http://127.0.0.1:30963/help/library/Lahman/help/Teams) | yearly stats and standings  |
     |             [`TeamsHalf`](http://127.0.0.1:30963/help/library/Lahman/help/TeamsHalf) | split season data for teams |
     | [`TeamsFranchises`](http://127.0.0.1:30963/help/library/Lahman/help/TeamsFranchises) | franchise information       |
@@ -35,7 +35,7 @@ The data is comprised of the following main tables:
     Post-season play:
 
     |                                                                                |                                 |
-    |-------------------------------------------------------------------------------:|:--------------------------------|
+    |-------------------------------------------------:|:---------------------|
     |   [`BattingPost`](http://127.0.0.1:30963/help/library/Lahman/help/BattingPost) | post-season batting statistics  |
     | [`PitchingPost`](http://127.0.0.1:30963/help/library/Lahman/help/PitchingPost) | post-season pitching statistics |
     | [`FieldingPost`](http://127.0.0.1:30963/help/library/Lahman/help/FieldingPost) | post-season fielding data       |
@@ -45,7 +45,7 @@ The data is comprised of the following main tables:
     Awards:
 
     |                                                                                              |                                 |
-    |---------------------------------------------------------------------------------------------:|:--------------------------------|
+    |----------------------------------------------------:|:------------------|
     |           [`AwardsManagers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsManagers) | awards won by managers          |
     |             [`AwardsPlayers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsPlayers) | awards won by players           |
     | [`AwardsShareManagers`](http://127.0.0.1:30963/help/library/Lahman/help/AwardsShareManagers) | award voting for manager awards |
@@ -55,7 +55,7 @@ The data is comprised of the following main tables:
     Hall of Fame: links to People via `hofID`
 
     |                                                                            |                          |
-    |---------------------------------------------------------------------------:|:-------------------------|
+    |----------------------------------------------------:|:------------------|
     | [`HallOfFame`](http://127.0.0.1:30963/help/library/Lahman/help/HallOfFame) | Hall of Fame voting data |
     |                                                                            |                          |
 
@@ -92,7 +92,7 @@ View the Lahman package to display the dataset with the data dictionary on the b
 
 Teams
 
-View(Teams)
+#View(Teams)
 
 teams <- Teams
 
@@ -139,6 +139,150 @@ ggplot(runs_per_yr, aes(x = yearID,  y = mean_runs)) +
 
 ```
 
+What team scored the most runs per year
+
+```{r}
+
+runs_teams <- Teams |> 
+  group_by(name) |> 
+  filter(yearID == 2022) |> 
+  select(name, R)
+
+#head(runs_teams)
+
+# arrange the Runs in descending order to view wha team made the highest runs
+arrange(runs_teams, desc(R))
+
+# plot
+ggplot(runs_teams, aes(x = name, y = R)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Runs scored by each team",
+    subtitle = "year 2022",
+    x = "Teams",
+    y = "Runs"
+  ) +
+  theme_minimal()
+
+```
+
+What team scored the highest Homeruns in the year 2022
+
+```{r}
+homeruns <- Teams |> 
+  group_by(name) |> 
+  filter(yearID == 2022) |> 
+  select(name, H) 
+
+
+arrange(homeruns, desc(H))
+
+# plot 
+ggplot(homeruns, aes(x = name, y = H)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  labs(
+    title = "Homeruns by each team",
+    subtitle = "year 2022",
+    x = "Teams",
+    y = "Homeruns"
+  ) +
+  theme_minimal()
+
+
+```
+
+How does different metrics compare to various teams
+
+```{r}
+# Restrict to AL and NL in mordern era
+teams <- Teams |> 
+  filter(yearID >= 2022 & lgID %in% c("AL", "NL")) |> 
+  drop_na() |> 
+  group_by(yearID, teamID) |> 
+  mutate(TB = H + X2B + 2 * X3B + 3 * HR,
+         WinPct = W/G,
+         rpg = R/G,
+         hrpg = HR/G,
+         tbpg = TB/G,
+         kpg = SO/G,
+         k2bb = SO/BB,
+         whip = 3 * (H + BB) / IPouts)
+
+# ggplot by year for selected team stats
+
+yrPlot <- function(yvar, label)
+  
+{
+    ggplot(teams, aes_string(x = "yearID", y = yvar)) +
+       geom_point(size = 0.5) +
+       geom_smooth(method="loess") +
+       labs(x = "Year", y = paste(label, "per game"))
+}
+
+```
+
+Plot of win percentage against run differential (R - RA)
+```{r}
+
+ggplot(teams, aes(x = R - RA, y = WinPct)) +
+  geom_point(size = 0.75) +
+  geom_smooth(method = "loess") +
+  geom_hline(yintercept = 0.5, color = "red") +
+  geom_vline(xintercept = 0, color = "orange") +
+  labs(
+    title = "Teams Win Percentage vs Run Differential",
+    x = "Run differential",
+    y = "Win percentage") +
+  theme_minimal()
+
+
+
+```
+Does fan attendance to game have an impact in the games outcome?
+
+```{r}
+teams |> 
+  filter(yearID >= 2000) |> 
+  ggplot(., aes(x = WinPct, y = attendance/1000)) +
+  geom_point(size = 0.5) +
+  geom_smooth(method = "loess", se = FALSE) +
+  facet_wrap(~ lgID) +
+  labs(x = "Win percentage", y = "Attendance in (1000s)")
+
+```
+
+Teams with over 4 million attendance in a season
+```{r}
+teams |> 
+  filter(attendance >= 4e6) |> 
+  select(yearID, lgID, teamID, Rank, attendance) |> 
+  arrange(desc(attendance))
+
+head(teams)
+
+
+ggplot(teams, aes(x = yearID, y = attendance/1000)) +
+  geom_point() +
+  facet_wrap(~ lgID)
+  
+```
+
+Average season Homeruns by Park, post-2000
+```{r}
+teams %>% 
+   filter(yearID >= 2000) %>%
+   group_by(park) %>%
+     summarise(meanHRpg = mean((HR + HRA)/Ghome), nyears = n()) %>%
+     filter(nyears >= 20) %>%
+     arrange(desc(meanHRpg)) %>%
+     head(., 10) 
+
+head(teams)
+
+```
+
 Ofcos every baseball fan wants his/her team to win. Lets go ahead and create a model to predict wins by team
 
 ```{r}
@@ -148,7 +292,7 @@ base_df <- teams |>
   select(name, yearID, W, L, R, H, X2B, X3B, HR, SO, RA) |> 
   filter(yearID >= 2009)
 
-head(base_df)
+head(base_df) 
 
 
 
@@ -169,7 +313,6 @@ summary(lm1)
 we can create another model with only the statistically significant variable and compare
 
 ```{r}
-
 
 lm2 <- lm(W ~ R + H + RA, data = base_df)
 
